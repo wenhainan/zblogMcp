@@ -1,6 +1,6 @@
 <?php
 /**
- * zblogMcp - ApiKey 管理主页（Vue3 + Element Plus）
+ * zblogMcp - ApiKey 管理主页
  */
 require_once __DIR__ . '/header.php';
 
@@ -17,183 +17,133 @@ if (GetVars('act', 'GET') == 'toggle') {
 }
 
 $keys = zblogmcp_key_list();
-$keys_json = json_encode($keys, JSON_UNESCAPED_UNICODE);
 $mcp_url = $bloghost . 'zb_users/plugin/zblogMcp/mcp.php';
 $csrf_token = $zbp->GetCSRFToken();
 ?>
 <div id="divMain" class="plugin-area">
-    <div class="divHeader"><?php echo $zblogmcp_plugin_info['name']; ?></div>
+    <div class="divHeader"><?php echo zblogmcp_h($zblogmcp_plugin_info['name']); ?></div>
     <div class="SubMenu"><?php echo zblogmcp_SubMenu(); ?></div>
     <div id="divMain2">
-        <div id="keyApp" class="zblogmcp-app">
-            <el-card shadow="never">
-                <template #header>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:16px; font-weight:bold;">ApiKey 管理</span>
-                        <el-button type="primary" @click="goAdd">
-                            <i class="fa-solid fa-key" aria-hidden="true"></i><span>新增 ApiKey</span>
-                        </el-button>
+        <div class="zbm-app">
+            <div class="zbm-card">
+                <div class="zbm-card__header">
+                    <span>ApiKey 管理</span>
+                    <a class="zbm-btn zbm-btn--primary zbm-btn--sm" href="key_edit.php">
+                        <?php echo zblogmcp_icon('key'); ?><span>新增 ApiKey</span>
+                    </a>
+                </div>
+                <div class="zbm-card__body">
+                    <div class="zbm-table-wrap">
+                        <table class="zbm-table">
+                            <thead>
+                                <tr>
+                                    <th class="is-center" style="width:60px;">ID</th>
+                                    <th style="min-width:130px;">名称</th>
+                                    <th style="min-width:280px;">ApiKey</th>
+                                    <th class="is-center" style="width:80px;">状态</th>
+                                    <th style="min-width:80px;">备注</th>
+                                    <th class="is-center" style="min-width:110px;">创建时间</th>
+                                    <th class="is-center" style="width:300px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($keys)) : ?>
+                                    <tr>
+                                        <td colspan="7">
+                                            <div class="zbm-empty">
+                                                <div>暂无 ApiKey 记录</div>
+                                                <a class="zbm-btn zbm-btn--primary zbm-btn--sm" href="key_edit.php">
+                                                    <?php echo zblogmcp_icon('key'); ?><span>立即创建</span>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php else : ?>
+                                    <?php foreach ($keys as $row) : ?>
+                                        <?php
+                                        $key_id = (int) $row['id'];
+                                        $api_key = (string) $row['api_key'];
+                                        $key_name = (string) $row['name'];
+                                        $is_enabled = ((int) $row['status'] === 1);
+                                        $client_config = json_encode(array(
+                                            'mcpServers' => array(
+                                                'zblog' => array(
+                                                    'url'     => $mcp_url,
+                                                    'headers' => array('Authorization' => 'Bearer ' . $api_key),
+                                                ),
+                                            ),
+                                        ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                                        $toggle_url = 'main.php?act=toggle&amp;id=' . $key_id . '&amp;status=' . ($is_enabled ? 0 : 1) . '&amp;csrfToken=' . urlencode($csrf_token);
+                                        $delete_url = 'main.php?act=del&amp;id=' . $key_id . '&amp;csrfToken=' . urlencode($csrf_token);
+                                        ?>
+                                        <tr>
+                                            <td class="is-center"><?php echo $key_id; ?></td>
+                                            <td><span class="zbm-tag zbm-tag--plain"><?php echo zblogmcp_h($key_name); ?></span></td>
+                                            <td>
+                                                <div class="zbm-row">
+                                                    <code class="zbm-key"
+                                                          id="zbm-key-<?php echo $key_id; ?>"
+                                                          data-state="mask"
+                                                          data-full="<?php echo zblogmcp_h($api_key); ?>"
+                                                          data-mask="<?php echo zblogmcp_h(zblogmcp_mask_key($api_key)); ?>"><?php echo zblogmcp_h(zblogmcp_mask_key($api_key)); ?></code>
+                                                    <button type="button"
+                                                            class="zbm-btn zbm-btn--sm"
+                                                            data-zbm-toggle-key="#zbm-key-<?php echo $key_id; ?>"
+                                                            data-label-full="隐藏"
+                                                            data-label-mask="显示">显示</button>
+                                                </div>
+                                            </td>
+                                            <td class="is-center">
+                                                <span class="zbm-tag <?php echo $is_enabled ? 'zbm-tag--success' : 'zbm-tag--danger'; ?>">
+                                                    <?php echo $is_enabled ? '启用' : '禁用'; ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo zblogmcp_h($row['remark']); ?></td>
+                                            <td class="is-center"><?php echo zblogmcp_h(substr((string) $row['create_time'], 0, 16)); ?></td>
+                                            <td>
+                                                <div class="zbm-actions">
+                                                    <button type="button"
+                                                            class="zbm-btn zbm-btn--primary zbm-btn--plain zbm-btn--sm"
+                                                            data-zbm-copy="<?php echo zblogmcp_h($api_key); ?>"
+                                                            data-zbm-copy-msg="ApiKey 已复制">
+                                                        <?php echo zblogmcp_icon('copy'); ?><span>复制</span>
+                                                    </button>
+                                                    <button type="button"
+                                                            class="zbm-btn zbm-btn--success zbm-btn--plain zbm-btn--sm"
+                                                            data-zbm-copy="<?php echo zblogmcp_h($client_config); ?>"
+                                                            data-zbm-copy-msg="MCP 客户端配置已复制">
+                                                        <?php echo zblogmcp_icon('filecode'); ?><span>复制配置</span>
+                                                    </button>
+                                                    <a class="zbm-btn zbm-btn--sm" href="key_edit.php?id=<?php echo $key_id; ?>">
+                                                        <?php echo zblogmcp_icon('edit'); ?><span>编辑</span>
+                                                    </a>
+                                                    <a class="zbm-btn zbm-btn--sm zbm-btn--<?php echo $is_enabled ? 'warning' : 'success'; ?>"
+                                                       href="<?php echo $toggle_url; ?>"
+                                                       data-zbm-confirm="确定<?php echo $is_enabled ? '禁用' : '启用'; ?> ApiKey「<?php echo zblogmcp_h($key_name); ?>」？"
+                                                       data-zbm-confirm-title="提示"
+                                                       data-zbm-confirm-ok="确定">
+                                                        <?php echo zblogmcp_icon($is_enabled ? 'ban' : 'check'); ?>
+                                                        <span><?php echo $is_enabled ? '禁用' : '启用'; ?></span>
+                                                    </a>
+                                                    <a class="zbm-btn zbm-btn--danger zbm-btn--sm"
+                                                       href="<?php echo $delete_url; ?>"
+                                                       data-zbm-confirm="确定删除 ApiKey「<?php echo zblogmcp_h($key_name); ?>」？删除后不可恢复！"
+                                                       data-zbm-confirm-title="警告"
+                                                       data-zbm-confirm-ok="确定删除"
+                                                       data-zbm-confirm-type="error">
+                                                        <?php echo zblogmcp_icon('trash'); ?><span>删除</span>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
-                </template>
-
-                <el-table :data="keys" style="width:100%" stripe border>
-                    <el-table-column prop="id" label="ID" width="60" align="center"></el-table-column>
-                    <el-table-column prop="name" label="名称" min-width="130">
-                        <template #default="{ row }">
-                            <el-tag effect="plain">{{ row.name }}</el-tag>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="ApiKey" min-width="280">
-                        <template #default="{ row }">
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <span class="key-text" v-text="row.showKey ? row.api_key : maskKey(row.api_key)"></span>
-                                <el-button size="small" text @click="row.showKey = !row.showKey">
-                                    <i class="fa-solid" :class="row.showKey ? 'fa-eye-slash' : 'fa-eye'" aria-hidden="true"></i>
-                                    {{ row.showKey ? '隐藏' : '显示' }}
-                                </el-button>
-                            </div>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="状态" width="80" align="center">
-                        <template #default="{ row }">
-                            <el-tag :type="row.status == 1 ? 'success' : 'danger'" size="small">
-                                {{ row.status == 1 ? '启用' : '禁用' }}
-                            </el-tag>
-                        </template>
-                    </el-table-column>
-                    <el-table-column prop="remark" label="备注" min-width="80" show-overflow-tooltip></el-table-column>
-                    <el-table-column label="创建时间" min-width="110" align="center">
-                        <template #default="{ row }">{{ formatTime(row.create_time) }}</template>
-                    </el-table-column>
-                    <el-table-column label="操作" width="480" align="center" fixed="right">
-                        <template #default="{ row }">
-                            <div class="zblogmcp-action-buttons">
-                                <el-button type="primary" plain size="small" @click="copyKey(row.api_key)">
-                                    <i class="fa-solid fa-copy" aria-hidden="true"></i><span>复制</span>
-                                </el-button>
-                                <el-button type="success" plain size="small" @click="copyClientConfig(row)">
-                                    <i class="fa-solid fa-file-code" aria-hidden="true"></i><span>复制配置</span>
-                                </el-button>
-                                <el-button size="small" @click="goEdit(row.id)">
-                                    <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span>编辑</span>
-                                </el-button>
-                                <el-button
-                                    :type="row.status == 1 ? 'warning' : 'success'"
-                                    size="small"
-                                    @click="toggleStatus(row)"
-                                >
-                                    <i class="fa-solid" :class="row.status == 1 ? 'fa-ban' : 'fa-circle-check'" aria-hidden="true"></i>
-                                    <span>{{ row.status == 1 ? '禁用' : '启用' }}</span>
-                                </el-button>
-                                <el-button type="danger" size="small" @click="confirmDelete(row)">
-                                    <i class="fa-solid fa-trash" aria-hidden="true"></i><span>删除</span>
-                                </el-button>
-                            </div>
-                        </template>
-                    </el-table-column>
-                    <template #empty>
-                        <el-empty description="暂无 ApiKey 记录">
-                            <el-button type="primary" @click="goAdd">
-                                <i class="fa-solid fa-key" aria-hidden="true"></i><span>立即创建</span>
-                            </el-button>
-                        </el-empty>
-                    </template>
-                </el-table>
-            </el-card>
-
+                </div>
+            </div>
         </div>
     </div>
 </div>
-
-<script>
-const { createApp, ref } = Vue;
-
-createApp({
-    setup() {
-        const keys = ref(<?php echo $keys_json; ?>.map(k => ({ ...k, showKey: false })));
-        const mcpUrl = <?php echo json_encode($mcp_url, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
-        const csrfToken = '<?php echo $csrf_token; ?>';
-
-        const maskKey = (key) => {
-            if (!key) return '';
-            return key.length > 4 ? '*'.repeat(key.length - 4) + key.slice(-4) : '*'.repeat(key.length);
-        };
-
-        const formatTime = (time) => {
-            if (!time) return '-';
-            return time.substring(0, 16);
-        };
-
-        const goAdd = () => { location.href = 'key_edit.php'; };
-        const goEdit = (id) => { location.href = 'key_edit.php?id=' + id; };
-
-        const copyText = async (text, successMessage) => {
-            if (!text) {
-                ElementPlus.ElMessage.warning('内容为空，无法复制');
-                return;
-            }
-            try {
-                if (navigator.clipboard && window.isSecureContext) {
-                    await navigator.clipboard.writeText(text);
-                } else {
-                    const textarea = document.createElement('textarea');
-                    textarea.value = text;
-                    textarea.style.position = 'fixed';
-                    textarea.style.left = '-9999px';
-                    textarea.style.top = '0';
-                    document.body.appendChild(textarea);
-                    textarea.focus();
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
-                }
-                ElementPlus.ElMessage.success(successMessage);
-            } catch (error) {
-                ElementPlus.ElMessage.error('复制失败，请手动复制');
-            }
-        };
-
-        const buildClientConfig = (apiKey) => JSON.stringify({
-            mcpServers: {
-                zblog: {
-                    url: mcpUrl,
-                    headers: { Authorization: `Bearer ${apiKey}` }
-                }
-            }
-        }, null, 2);
-
-        const copyKey = (key) => copyText(key, 'ApiKey 已复制');
-        const copyClientConfig = (row) => {
-            if (!row.api_key) {
-                ElementPlus.ElMessage.warning('ApiKey 为空，无法生成配置');
-                return;
-            }
-            copyText(buildClientConfig(row.api_key), 'MCP 客户端配置已复制');
-        };
-
-        const toggleStatus = (row) => {
-            const action = row.status == 1 ? '禁用' : '启用';
-            ElementPlus.ElMessageBox.confirm(`确定${action} ApiKey「${row.name}」？`, '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                location.href = `main.php?act=toggle&id=${row.id}&status=${row.status == 1 ? 0 : 1}&csrfToken=${csrfToken}`;
-            });
-        };
-
-        const confirmDelete = (row) => {
-            ElementPlus.ElMessageBox.confirm(`确定删除 ApiKey「${row.name}」？删除后不可恢复！`, '警告', {
-                confirmButtonText: '确定删除',
-                cancelButtonText: '取消',
-                type: 'error'
-            }).then(() => {
-                location.href = `main.php?act=del&id=${row.id}&csrfToken=${csrfToken}`;
-            });
-        };
-
-        return { keys, maskKey, formatTime, goAdd, goEdit, copyKey, copyClientConfig, toggleStatus, confirmDelete };
-    }
-}).use(ElementPlus).mount('#keyApp');
-</script>
 <?php require_once __DIR__ . '/foot.php'; ?>

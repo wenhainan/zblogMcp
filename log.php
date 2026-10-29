@@ -1,6 +1,6 @@
 <?php
 /**
- * zblogMcp - MCP 日志查看页（Vue3 + Element Plus）
+ * zblogMcp - MCP 日志查看页
  */
 require_once __DIR__ . '/header.php';
 
@@ -24,246 +24,250 @@ $logs = $log_result['log'];
 $p = $log_result['p'];
 
 $keys = zblogmcp_key_list();
-$key_name_map = [];
+$key_name_map = array();
 foreach ($keys as $k) {
     $key_name_map[$k['id']] = $k['name'];
 }
 
-$logs_json = json_encode($logs, JSON_UNESCAPED_UNICODE);
-$stats_json = json_encode($stats, JSON_UNESCAPED_UNICODE);
-$key_map_json = json_encode($key_name_map, JSON_UNESCAPED_UNICODE);
-$page_now = $p->PageNow;
-$page_count = $p->PageCount;
-$total = $p->Count;
 $log_max_days = (int) $zblogmcp_config->log_max_days;
-$csrf_token = $zbp->GetCSRFToken();
+$clean_url = 'log.php?act=clean_old&amp;csrfToken=' . urlencode($zbp->GetCSRFToken());
+$clear_url = 'log.php?act=clear&amp;csrfToken=' . urlencode($zbp->GetCSRFToken());
+$logs_json = json_encode($logs, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 <div id="divMain" class="plugin-area">
-    <div class="divHeader"><?php echo $zblogmcp_plugin_info['name']; ?></div>
+    <div class="divHeader"><?php echo zblogmcp_h($zblogmcp_plugin_info['name']); ?></div>
     <div class="SubMenu"><?php echo zblogmcp_SubMenu(); ?></div>
     <div id="divMain2">
-        <div id="logApp" class="zblogmcp-app">
+        <div class="zbm-app">
 
-            <!-- 统计卡片 -->
-            <el-row :gutter="16" class="stats-row">
-                <el-col :span="6">
-                    <el-card shadow="hover">
-                        <el-statistic title="总请求数" :value="stats.total"></el-statistic>
-                    </el-card>
-                </el-col>
-                <el-col :span="6">
-                    <el-card shadow="hover">
-                        <el-statistic title="成功" :value="stats.success">
-                            <template #suffix><span style="color:#67c23a; font-size:14px;">成功</span></template>
-                        </el-statistic>
-                    </el-card>
-                </el-col>
-                <el-col :span="6">
-                    <el-card shadow="hover">
-                        <el-statistic title="失败" :value="stats.fail">
-                            <template #suffix><span style="color:#f56c6c; font-size:14px;">失败</span></template>
-                        </el-statistic>
-                    </el-card>
-                </el-col>
-                <el-col :span="6">
-                    <el-card shadow="hover">
-                        <el-statistic title="今日请求" :value="stats.today"></el-statistic>
-                    </el-card>
-                </el-col>
-            </el-row>
-
-            <!-- 操作栏 -->
-            <el-card shadow="never" style="margin-bottom:15px;">
-                <el-button type="warning" plain @click="cleanOld">
-                    <i class="fa-solid fa-broom" aria-hidden="true"></i>
-                    清理 {{ logMaxDays }} 天前日志
-                </el-button>
-                <el-button type="danger" plain @click="clearAll">
-                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                    清空全部日志
-                </el-button>
-            </el-card>
-
-            <!-- 日志表格 -->
-            <el-card shadow="never">
-                <el-table :data="logs" style="width:100%" stripe border>
-                    <el-table-column prop="id" label="ID" width="60" align="center"></el-table-column>
-                    <el-table-column label="方法" min-width="120">
-                        <template #default="{ row }">
-                            <el-tag size="small" effect="plain"><code>{{ row.method }}</code></el-tag>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="工具/端点" min-width="140" show-overflow-tooltip>
-                        <template #default="{ row }">
-                            <code v-if="row.endpoint">{{ row.endpoint }}</code>
-                            <span v-else style="color:#999;">-</span>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="状态" width="70" align="center">
-                        <template #default="{ row }">
-                            <el-tag :type="row.status_code == 1 ? 'success' : 'danger'" size="small">
-                                {{ row.status_code == 1 ? '成功' : '失败' }}
-                            </el-tag>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="耗时" width="80" align="center">
-                        <template #default="{ row }">
-                            <el-text size="small">{{ row.response_time }}ms</el-text>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="IP" min-width="110">
-                        <template #default="{ row }">
-                            <el-text size="small">{{ row.ip }}</el-text>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="ApiKey" min-width="90">
-                        <template #default="{ row }">
-                            <span v-if="row.api_key_id > 0 && keyMap[row.api_key_id]">
-                                {{ keyMap[row.api_key_id] }}
-                            </span>
-                            <span v-else style="color:#999;">-</span>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="时间" min-width="100" align="center">
-                        <template #default="{ row }">
-                            <el-text size="small">{{ formatTime(row.create_time) }}</el-text>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="操作" width="150" align="center" fixed="right">
-                        <template #default="{ row }">
-                            <div class="zblogmcp-action-buttons">
-                                <el-button size="small" @click="showDetail(row)">
-                                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>详情</span>
-                                </el-button>
-                                <el-button type="danger" size="small" @click="confirmDelete(row)">
-                                    <i class="fa-solid fa-trash" aria-hidden="true"></i><span>删除</span>
-                                </el-button>
-                            </div>
-                        </template>
-                    </el-table-column>
-                    <template #empty>
-                        <el-empty description="暂无 MCP 请求日志"></el-empty>
-                    </template>
-                </el-table>
-
-                <!-- 分页 -->
-                <div style="margin-top:15px; display:flex; justify-content:flex-end;" v-if="total > 0">
-                    <el-pagination
-                        background
-                        layout="total, prev, pager, next"
-                        :total="total"
-                        :page-size="pageCount"
-                        :current-page="pageNow"
-                        @current-change="goPage"
-                    ></el-pagination>
+            <div class="zbm-stats">
+                <div class="zbm-stat">
+                    <div class="zbm-stat__title">总请求数</div>
+                    <div class="zbm-stat__value"><?php echo (int) $stats['total']; ?></div>
                 </div>
-            </el-card>
+                <div class="zbm-stat zbm-stat--success">
+                    <div class="zbm-stat__title">成功</div>
+                    <div class="zbm-stat__value"><?php echo (int) $stats['success']; ?><span class="zbm-stat__suffix">成功</span></div>
+                </div>
+                <div class="zbm-stat zbm-stat--danger">
+                    <div class="zbm-stat__title">失败</div>
+                    <div class="zbm-stat__value"><?php echo (int) $stats['fail']; ?><span class="zbm-stat__suffix">失败</span></div>
+                </div>
+                <div class="zbm-stat">
+                    <div class="zbm-stat__title">今日请求</div>
+                    <div class="zbm-stat__value"><?php echo (int) $stats['today']; ?></div>
+                </div>
+            </div>
 
-            <!-- 详情弹窗 -->
-            <el-dialog v-model="detailVisible" title="请求详情" width="700px" destroy-on-close>
-                <template v-if="currentLog">
-                    <el-descriptions :column="2" border size="small" style="margin-bottom:15px;">
-                        <el-descriptions-item label="方法"><code>{{ currentLog.method }}</code></el-descriptions-item>
-                        <el-descriptions-item label="工具/端点"><code>{{ currentLog.endpoint || '-' }}</code></el-descriptions-item>
-                        <el-descriptions-item label="状态">
-                            <el-tag :type="currentLog.status_code == 1 ? 'success' : 'danger'" size="small">
-                                {{ currentLog.status_code == 1 ? '成功' : '失败' }}
-                            </el-tag>
-                        </el-descriptions-item>
-                        <el-descriptions-item label="耗时">{{ currentLog.response_time }}ms</el-descriptions-item>
-                        <el-descriptions-item label="IP">{{ currentLog.ip }}</el-descriptions-item>
-                        <el-descriptions-item label="时间">{{ currentLog.create_time }}</el-descriptions-item>
-                    </el-descriptions>
+            <div class="zbm-card">
+                <div class="zbm-card__body">
+                    <div class="zbm-row">
+                        <a class="zbm-btn zbm-btn--warning zbm-btn--plain zbm-btn--sm"
+                           href="<?php echo $clean_url; ?>"
+                           data-zbm-confirm="确定清理 <?php echo $log_max_days; ?> 天前的旧日志？"
+                           data-zbm-confirm-title="提示"
+                           data-zbm-confirm-ok="确定">
+                            <?php echo zblogmcp_icon('clock'); ?><span>清理 <?php echo $log_max_days; ?> 天前日志</span>
+                        </a>
+                        <a class="zbm-btn zbm-btn--danger zbm-btn--plain zbm-btn--sm"
+                           href="<?php echo $clear_url; ?>"
+                           data-zbm-confirm="确定清空全部日志？此操作不可恢复！"
+                           data-zbm-confirm-title="警告"
+                           data-zbm-confirm-ok="确定清空"
+                           data-zbm-confirm-type="error">
+                            <?php echo zblogmcp_icon('trash'); ?><span>清空全部日志</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
 
-                    <h4 style="margin:10px 0 5px;">请求内容</h4>
-                    <div class="log-detail-json">{{ formatJson(currentLog.request_body) }}</div>
+            <div class="zbm-card">
+                <div class="zbm-card__body">
+                    <div class="zbm-table-wrap">
+                        <table class="zbm-table">
+                            <thead>
+                                <tr>
+                                    <th class="is-center" style="width:60px;">ID</th>
+                                    <th style="min-width:120px;">方法</th>
+                                    <th style="min-width:140px;">工具/端点</th>
+                                    <th class="is-center" style="width:70px;">状态</th>
+                                    <th class="is-center" style="width:80px;">耗时</th>
+                                    <th style="min-width:110px;">IP</th>
+                                    <th style="min-width:90px;">ApiKey</th>
+                                    <th class="is-center" style="min-width:100px;">时间</th>
+                                    <th class="is-center" style="width:150px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($logs)) : ?>
+                                    <tr>
+                                        <td colspan="9">
+                                            <div class="zbm-empty">暂无 MCP 请求日志</div>
+                                        </td>
+                                    </tr>
+                                <?php else : ?>
+                                    <?php foreach ($logs as $row) : ?>
+                                        <?php
+                                        $log_id = (int) $row['id'];
+                                        $is_ok = ((int) $row['status_code'] === 1);
+                                        $key_label = '-';
+                                        if (!empty($row['api_key_id']) && isset($key_name_map[$row['api_key_id']])) {
+                                            $key_label = $key_name_map[$row['api_key_id']];
+                                        }
+                                        $delete_url = 'log.php?act=del&amp;id=' . $log_id . '&amp;csrfToken=' . urlencode($zbp->GetCSRFToken());
+                                        ?>
+                                        <tr>
+                                            <td class="is-center"><?php echo $log_id; ?></td>
+                                            <td><span class="zbm-tag zbm-tag--plain"><code><?php echo zblogmcp_h($row['method']); ?></code></span></td>
+                                            <td>
+                                                <?php if ($row['endpoint'] !== '') : ?>
+                                                    <code><?php echo zblogmcp_h($row['endpoint']); ?></code>
+                                                <?php else : ?>
+                                                    <span class="zbm-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="is-center">
+                                                <span class="zbm-tag <?php echo $is_ok ? 'zbm-tag--success' : 'zbm-tag--danger'; ?>">
+                                                    <?php echo $is_ok ? '成功' : '失败'; ?>
+                                                </span>
+                                            </td>
+                                            <td class="is-center"><?php echo (int) $row['response_time']; ?>ms</td>
+                                            <td><?php echo zblogmcp_h($row['ip']); ?></td>
+                                            <td>
+                                                <?php if ($key_label !== '-') : ?>
+                                                    <?php echo zblogmcp_h($key_label); ?>
+                                                <?php else : ?>
+                                                    <span class="zbm-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="is-center"><?php echo zblogmcp_h(substr((string) $row['create_time'], 5, 16)); ?></td>
+                                            <td>
+                                                <div class="zbm-actions">
+                                                    <button type="button" class="zbm-btn zbm-btn--sm" data-zbm-log-detail="<?php echo $log_id; ?>">
+                                                        <?php echo zblogmcp_icon('info'); ?><span>详情</span>
+                                                    </button>
+                                                    <a class="zbm-btn zbm-btn--danger zbm-btn--sm"
+                                                       href="<?php echo $delete_url; ?>"
+                                                       data-zbm-confirm="确定删除此条日志？"
+                                                       data-zbm-confirm-title="提示"
+                                                       data-zbm-confirm-ok="确定">
+                                                        <?php echo zblogmcp_icon('trash'); ?><span>删除</span>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php if (!empty($logs)) : ?>
+                        <?php echo zblogmcp_page_render($p); ?>
+                    <?php endif; ?>
+                </div>
+            </div>
 
-                    <h4 style="margin:10px 0 5px;">响应内容</h4>
-                    <div class="log-detail-json">{{ formatJson(currentLog.response_body) }}</div>
-                </template>
-            </el-dialog>
+            <div class="zbm-dialog" id="zbmLogDialog">
+                <div class="zbm-dialog__mask" data-zbm-dialog-close></div>
+                <div class="zbm-dialog__box">
+                    <div class="zbm-dialog__header">
+                        <span>请求详情</span>
+                        <button type="button" class="zbm-dialog__close" data-zbm-dialog-close aria-label="关闭">&times;</button>
+                    </div>
+                    <div class="zbm-dialog__body" id="zbmLogDialogBody"></div>
+                </div>
+            </div>
 
         </div>
     </div>
 </div>
 
+<script type="application/json" id="zbm-log-data"><?php echo $logs_json; ?></script>
 <script>
-const { createApp, ref } = Vue;
-
-createApp({
-    setup() {
-        const logs = ref(<?php echo $logs_json; ?>);
-        const stats = ref(<?php echo $stats_json; ?>);
-        const keyMap = ref(<?php echo $key_map_json; ?>);
-        const pageNow = ref(<?php echo $page_now; ?>);
-        const pageCount = ref(<?php echo $page_count; ?>);
-        const total = ref(<?php echo $total; ?>);
-        const logMaxDays = ref(<?php echo $log_max_days; ?>);
-        const csrfToken = '<?php echo $csrf_token; ?>';
-        const detailVisible = ref(false);
-        const currentLog = ref(null);
-
-        const formatTime = (time) => {
-            if (!time) return '-';
-            return time.substring(5, 16);
-        };
-
-        const formatJson = (str) => {
-            if (!str) return '(空)';
-            try {
-                return JSON.stringify(JSON.parse(str), null, 2);
-            } catch(e) {
-                return str;
-            }
-        };
-
-        const goPage = (page) => {
-            const url = new URL(location.href);
-            url.searchParams.set('page', page);
-            location.href = url.toString();
-        };
-
-        const showDetail = (row) => {
-            currentLog.value = row;
-            detailVisible.value = true;
-        };
-
-        const confirmDelete = (row) => {
-            ElementPlus.ElMessageBox.confirm('确定删除此条日志？', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                location.href = `log.php?act=del&id=${row.id}&csrfToken=${csrfToken}`;
-            });
-        };
-
-        const cleanOld = () => {
-            ElementPlus.ElMessageBox.confirm(`确定清理 ${logMaxDays.value} 天前的旧日志？`, '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                location.href = `log.php?act=clean_old&csrfToken=${csrfToken}`;
-            });
-        };
-
-        const clearAll = () => {
-            ElementPlus.ElMessageBox.confirm('确定清空全部日志？此操作不可恢复！', '警告', {
-                confirmButtonText: '确定清空',
-                cancelButtonText: '取消',
-                type: 'error'
-            }).then(() => {
-                location.href = `log.php?act=clear&csrfToken=${csrfToken}`;
-            });
-        };
-
-        return {
-            logs, stats, keyMap, pageNow, pageCount, total, logMaxDays,
-            detailVisible, currentLog,
-            formatTime, formatJson, goPage, showDetail, confirmDelete, cleanOld, clearAll
-        };
+document.addEventListener('DOMContentLoaded', function () {
+    var logs = [];
+    try {
+        logs = JSON.parse(document.getElementById('zbm-log-data').textContent || '[]');
+    } catch (error) {
+        logs = [];
     }
-}).use(ElementPlus).mount('#logApp');
+
+    var body = document.getElementById('zbmLogDialogBody');
+
+    function findLog(id) {
+        for (var i = 0; i < logs.length; i++) {
+            if (String(logs[i].id) === String(id)) {
+                return logs[i];
+            }
+        }
+        return null;
+    }
+
+    function formatJson(text) {
+        if (!text) {
+            return '(空)';
+        }
+        try {
+            return JSON.stringify(JSON.parse(text), null, 2);
+        } catch (error) {
+            return text;
+        }
+    }
+
+    function makeNode(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) {
+            node.className = className;
+        }
+        if (text !== undefined && text !== null) {
+            node.textContent = String(text);
+        }
+        return node;
+    }
+
+    function descRow(label, value, isCode) {
+        var row = makeNode('div', 'zbm-desc__row');
+        row.appendChild(makeNode('div', 'zbm-desc__label', label));
+        var cell = makeNode('div', 'zbm-desc__value');
+        if (isCode) {
+            cell.appendChild(makeNode('code', '', value));
+        } else {
+            cell.textContent = value === '' ? '-' : String(value);
+        }
+        row.appendChild(cell);
+        return row;
+    }
+
+    function render(log) {
+        body.innerHTML = '';
+        if (!log) {
+            body.appendChild(makeNode('div', 'zbm-muted', '未找到该条日志'));
+            return;
+        }
+
+        var desc = makeNode('div', 'zbm-desc');
+        desc.appendChild(descRow('方法', log.method, true));
+        desc.appendChild(descRow('工具/端点', log.endpoint || '-', true));
+        desc.appendChild(descRow('状态', log.status_code == 1 ? '成功' : '失败', false));
+        desc.appendChild(descRow('耗时', (log.response_time || 0) + 'ms', false));
+        desc.appendChild(descRow('IP', log.ip, false));
+        desc.appendChild(descRow('时间', log.create_time, false));
+        body.appendChild(desc);
+
+        body.appendChild(makeNode('div', 'zbm-block-title', '请求内容'));
+        body.appendChild(makeNode('pre', 'zbm-code', formatJson(log.request_body)));
+
+        body.appendChild(makeNode('div', 'zbm-block-title', '响应内容'));
+        body.appendChild(makeNode('pre', 'zbm-code', formatJson(log.response_body)));
+    }
+
+    var buttons = document.querySelectorAll('[data-zbm-log-detail]');
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].addEventListener('click', function () {
+            render(findLog(this.getAttribute('data-zbm-log-detail')));
+            window.Zbm.openDialog('#zbmLogDialog');
+        });
+    }
+});
 </script>
 <?php require_once __DIR__ . '/foot.php'; ?>

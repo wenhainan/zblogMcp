@@ -394,6 +394,21 @@ function zblogmcp_get_client_ip()
 }
 
 /**
+ * 生成随机 ApiKey
+ * @Z5Encrypt
+ */
+function zblogmcp_generate_key()
+{
+    $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    $max = strlen($chars) - 1;
+    $key = 'sk-mcp-';
+    for ($i = 0; $i < 40; $i++) {
+        $key .= $chars[random_int(0, $max)];
+    }
+    return $key;
+}
+
+/**
  * 对 ApiKey 进行脱敏显示
  * @Z5Encrypt
  */

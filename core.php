@@ -6,6 +6,9 @@
 
 $zblogmcp_plugin_info = include dirname(__FILE__) . '/config/plugin_info.php';
 
+# 后台界面辅助（图标、转义）
+require_once dirname(__FILE__) . '/ui.php';
+
 define('ZBLOGMCP', dirname(__FILE__));
 $title = $zblogmcp_plugin_info['name'];
 $zblogmcp_config = $zbp->Config('zblogMcp');
@@ -305,14 +308,10 @@ function zblogmcp_query($table, $where = [])
  */
 function zblogmcp_page_render($p)
 {
-    $buttons = $p->buttons;
-    $str = '';
-    foreach ($buttons as $page => $href) {
-        if ($page == $p->PageNow) {
-            $str .= "<a class='url-active' href={$href}><span>{$page}</span></a>";
-        } else {
-            $str .= "<a href={$href}><span>{$page}</span></a>";
-        }
+    $html = '<div class="zbm-pager"><span class="zbm-pager__total">共 ' . (int) $p->Count . ' 条</span>';
+    foreach ($p->buttons as $page => $href) {
+        $active = ((string) $page === (string) $p->PageNow) ? 'is-active' : '';
+        $html .= '<a class="' . $active . '" href="' . zblogmcp_h($href) . '">' . zblogmcp_h($page) . '</a>';
     }
-    return $str . ' 总数量 ' . $p->Count;
+    return $html . '</div>';
 }
