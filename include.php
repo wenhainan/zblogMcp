@@ -11,7 +11,7 @@ require_once __DIR__ . '/core.php';
  * 新增 ApiKey
  * @Z5Encrypt
  */
-function zblogmcp_add_key($param)
+function zblogmcp_add_key($param, $redirect = true)
 {
     global $zbp;
     if (empty($param['name']) || empty($param['api_key'])) {
@@ -36,7 +36,10 @@ function zblogmcp_add_key($param)
             'update_time' => date('Y-m-d H:i:s', time()),
         ])
         ->query;
-    zblogmcp_redirect('main.php', 'ApiKey 添加成功');
+    if ($redirect) {
+        zblogmcp_redirect('main.php', 'ApiKey 添加成功');
+    }
+    return true;
 }
 
 /**
