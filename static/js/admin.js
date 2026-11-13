@@ -243,10 +243,7 @@
         // 关闭弹窗
         var closer = el.closest('[data-zbm-dialog-close]');
         if (closer) {
-            var opened = closer;
-            while (opened && opened.className.indexOf('zbm-dialog') < 0) {
-                opened = opened.parentNode;
-            }
+            var opened = closer.closest('.zbm-dialog');
             Zbm.closeDialog(opened);
             return;
         }
