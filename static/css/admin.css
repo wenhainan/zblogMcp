@@ -89,14 +89,14 @@
 .zbm-btn--sm .zbm-icon { font-size: 12px; }
 .zbm-btn .zbm-icon { font-size: 14px; }
 
-.zbm-btn--primary { color: #fff; background: #409eff; border-color: #409eff; }
-.zbm-btn--primary:hover { color: #fff; background: #66b1ff; border-color: #66b1ff; }
+.zbm-btn--primary a{ color: #fff; background: #409eff; border-color: #409eff; }
+.zbm-btn--primary a:hover { color: #fff; background: #66b1ff; border-color: #66b1ff; }
 .zbm-btn--success { color: #fff; background: #67c23a; border-color: #67c23a; }
 .zbm-btn--success:hover { color: #fff; background: #85ce61; border-color: #85ce61; }
 .zbm-btn--warning { color: #fff; background: #e6a23c; border-color: #e6a23c; }
 .zbm-btn--warning:hover { color: #fff; background: #ebb563; border-color: #ebb563; }
-.zbm-btn--danger { color: #fff; background: #f56c6c; border-color: #f56c6c; }
-.zbm-btn--danger:hover { color: #fff; background: #f78989; border-color: #f78989; }
+.zbm-btn--danger a { color: #fff; background: #f56c6c; border-color: #f56c6c; }
+.zbm-btn--danger a:hover { color: #fff; background: #f78989; border-color: #f78989; }
 
 .zbm-btn--primary.zbm-btn--plain { color: #409eff; background: #ecf5ff; border-color: #b3d8ff; }
 .zbm-btn--primary.zbm-btn--plain:hover { color: #fff; background: #409eff; border-color: #409eff; }
@@ -104,8 +104,8 @@
 .zbm-btn--success.zbm-btn--plain:hover { color: #fff; background: #67c23a; border-color: #67c23a; }
 .zbm-btn--warning.zbm-btn--plain { color: #e6a23c; background: #fdf6ec; border-color: #f5dab1; }
 .zbm-btn--warning.zbm-btn--plain:hover { color: #fff; background: #e6a23c; border-color: #e6a23c; }
-.zbm-btn--danger.zbm-btn--plain { color: #f56c6c; background: #fef0f0; border-color: #fbc4c4; }
-.zbm-btn--danger.zbm-btn--plain:hover { color: #fff; background: #f56c6c; border-color: #f56c6c; }
+.zbm-btn--danger.zbm-btn--plain a{ color: #f56c6c; background: #fef0f0; border-color: #fbc4c4; }
+.zbm-btn--danger.zbm-btn--plain a:hover { color: #fff; background: #f56c6c; border-color: #f56c6c; }
 
 /* 操作列按钮组 */
 .zbm-actions { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }

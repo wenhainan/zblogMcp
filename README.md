@@ -107,6 +107,21 @@
 4. 将 MCP 地址和 Bearer Token 配置到 AI 客户端。
 5. 让 AI 客户端刷新 MCP 工具列表并开始调用。
 
+### CLI 添加 ApiKey
+
+插件启用后，可在站点根目录通过 CLI 添加 ApiKey。未传 `--key` 时会自动生成随机 ApiKey，成功后输出完整密钥：
+
+```bash
+php zb_users/plugin/zblogMcp/cli.php add-key --name="自动化客户端" --scopes="read,write"
+```
+
+可选参数：
+
+- `--name`：必填，密钥名称。
+- `--key`：可选，自定义 ApiKey。
+- `--scopes`：可选，权限范围，支持 `read`、`write`、`category`、`tag`、`media`、`comment`，多个权限用逗号分隔，默认 `all`。
+- `--remark`：可选，备注信息。
+
 ## 五、配置说明
 
 - **日志开关**：控制是否记录 MCP 请求日志。
