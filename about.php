@@ -9,7 +9,7 @@ require_once __DIR__ . '/header.php';
     <div class="SubMenu"><?php echo zblogmcp_SubMenu(); ?></div>
     <div id="divMain2">
         <div class="zbm-app">
-            <div class="zbm-card" style="max-width:760px;">
+            <!-- <div class="zbm-card" style="max-width:760px;">
                 <div class="zbm-card__header">
                     <span class="zbm-row"><?php echo zblogmcp_icon('info'); ?><span>关于</span></span>
                 </div>
@@ -47,7 +47,7 @@ require_once __DIR__ . '/header.php';
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             <div class="zbm-card" style="max-width:760px;">
                 <div class="zbm-card__header">
